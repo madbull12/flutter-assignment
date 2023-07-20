@@ -37,14 +37,14 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   // All journals
-  List<Map<String, dynamic>> _journals = [];
+  List<Map<String, dynamic>> _posts = [];
 
   bool _isLoading = true;
   // This function is used to fetch all data from the database
-  void _refreshJournals() async {
+  void _refreshPosts() async {
     final data = await SQLHelper.getItems();
     setState(() {
-      _journals = data;
+      _posts = data;
       _isLoading = false;
     });
   }
@@ -52,7 +52,7 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
-    _refreshJournals(); // Loading the diary when the app starts
+    _refreshPosts(); // Loading the diary when the app starts
   }
 
   final TextEditingController _titleController = TextEditingController();
@@ -64,10 +64,9 @@ class _HomePageState extends State<HomePage> {
     if (id != null) {
       // id == null -> create new item
       // id != null -> update an existing item
-      final existingJournal =
-          _journals.firstWhere((element) => element['id'] == id);
-      _titleController.text = existingJournal['title'];
-      _descriptionController.text = existingJournal['description'];
+      final existingPost = _posts.firstWhere((element) => element['id'] == id);
+      _titleController.text = existingPost['title'];
+      _descriptionController.text = existingPost['description'];
     }
 
     showModalBottomSheet(
@@ -129,14 +128,14 @@ class _HomePageState extends State<HomePage> {
   Future<void> _addItem() async {
     await SQLHelper.createItem(
         _titleController.text, _descriptionController.text);
-    _refreshJournals();
+    _refreshPosts();
   }
 
   // Update an existing journal
   Future<void> _updateItem(int id) async {
     await SQLHelper.updateItem(
         id, _titleController.text, _descriptionController.text);
-    _refreshJournals();
+    _refreshPosts();
   }
 
   // Delete an item
@@ -145,7 +144,7 @@ class _HomePageState extends State<HomePage> {
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
       content: Text('Successfully deleted a post!'),
     ));
-    _refreshJournals();
+    _refreshPosts();
   }
 
   @override
@@ -159,26 +158,25 @@ class _HomePageState extends State<HomePage> {
               child: CircularProgressIndicator(),
             )
           : ListView.builder(
-              itemCount: _journals.length,
+              itemCount: _posts.length,
               itemBuilder: (context, index) => Card(
                 color: Colors.purple[300],
                 margin: const EdgeInsets.all(15),
                 child: ListTile(
                     isThreeLine: true,
-                    title: Text(_journals[index]['title']),
-                    subtitle: Text(_journals[index]['description']),
+                    title: Text(_posts[index]['title']),
+                    subtitle: Text(_posts[index]['description']),
                     trailing: SizedBox(
                       width: 100,
                       child: Row(
                         children: [
                           IconButton(
                             icon: const Icon(Icons.edit),
-                            onPressed: () => _showForm(_journals[index]['id']),
+                            onPressed: () => _showForm(_posts[index]['id']),
                           ),
                           IconButton(
                             icon: const Icon(Icons.delete),
-                            onPressed: () =>
-                                _deleteItem(_journals[index]['id']),
+                            onPressed: () => _deleteItem(_posts[index]['id']),
                           ),
                         ],
                       ),
