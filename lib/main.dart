@@ -1,7 +1,7 @@
 // main.dart
 import 'package:flutter/material.dart';
 
-import 'db_helper.dart';
+import 'sql_helper.dart';
 import 'package:flutter_sqlite/splash_screen.dart';
 
 void main() {
@@ -16,33 +16,35 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       // Remove the debug banner
       debugShowCheckedModeBanner: false,
-      title: 'Hobbyist',
+      title: 'POSTZ',
       theme: ThemeData(
-        primarySwatch: Colors.blue,
+        primarySwatch: Colors.deepPurple,
       ),
       home: SplashScreen(),
       routes: {
-        '/home': (context) => HomeScreen(),
+        '/home': (context) => HomePage(),
       },
     );
   }
 }
 
-class HomeScreen extends StatefulWidget {
-  const HomeScreen({Key? key}) : super(key: key);
+class HomePage extends StatefulWidget {
+  const HomePage({Key? key}) : super(key: key);
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  State<HomePage> createState() => _HomePageState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
-  List<Map<String, dynamic>> _items = [];
+class _HomePageState extends State<HomePage> {
+  // All journals
+  List<Map<String, dynamic>> _posts = [];
 
   bool _isLoading = true;
-  void _refreshItems() async {
-    final data = await DBHelper.getItems();
+  // This function is used to fetch all data from the database
+  void _refreshPosts() async {
+    final data = await SQLHelper.getItems();
     setState(() {
-      _items = data;
+      _posts = data;
       _isLoading = false;
     });
   }
@@ -50,17 +52,21 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    _refreshItems();
+    _refreshPosts(); // Loading the diary when the app starts
   }
 
-  final TextEditingController _usernameController = TextEditingController();
-  final TextEditingController _hobbyController = TextEditingController();
+  final TextEditingController _titleController = TextEditingController();
+  final TextEditingController _descriptionController = TextEditingController();
 
+  // This function will be triggered when the floating button is pressed
+  // It will also be triggered when you want to update an item
   void _showForm(int? id) async {
     if (id != null) {
-      final existingItem = _items.firstWhere((element) => element['id'] == id);
-      _usernameController.text = existingItem['username'];
-      _hobbyController.text = existingItem['hobby'];
+      // id == null -> create new item
+      // id != null -> update an existing item
+      final existingPost = _posts.firstWhere((element) => element['id'] == id);
+      _titleController.text = existingPost['title'];
+      _descriptionController.text = existingPost['description'];
     }
 
     showModalBottomSheet(
@@ -72,6 +78,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 top: 15,
                 left: 15,
                 right: 15,
+                // this will prevent the soft keyboard from covering the text fields
                 bottom: MediaQuery.of(context).viewInsets.bottom + 120,
               ),
               child: Column(
@@ -79,21 +86,22 @@ class _HomeScreenState extends State<HomeScreen> {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   TextField(
-                    controller: _usernameController,
-                    decoration: const InputDecoration(hintText: 'Username'),
+                    controller: _titleController,
+                    decoration: const InputDecoration(hintText: 'Title'),
                   ),
                   const SizedBox(
                     height: 10,
                   ),
                   TextField(
-                    controller: _hobbyController,
-                    decoration: const InputDecoration(hintText: 'Hobby'),
+                    controller: _descriptionController,
+                    decoration: const InputDecoration(hintText: 'Description'),
                   ),
                   const SizedBox(
                     height: 20,
                   ),
                   ElevatedButton(
                     onPressed: () async {
+                      // Save new journal
                       if (id == null) {
                         await _addItem();
                       }
@@ -102,9 +110,11 @@ class _HomeScreenState extends State<HomeScreen> {
                         await _updateItem(id);
                       }
 
-                      _usernameController.text = '';
-                      _hobbyController.text = '';
+                      // Clear the text fields
+                      _titleController.text = '';
+                      _descriptionController.text = '';
 
+                      // Close the bottom sheet
                       Navigator.of(context).pop();
                     },
                     child: Text(id == null ? 'Create New' : 'Update'),
@@ -114,55 +124,59 @@ class _HomeScreenState extends State<HomeScreen> {
             ));
   }
 
+// Insert a new journal to the database
   Future<void> _addItem() async {
-    await DBHelper.createItem(_usernameController.text, _hobbyController.text);
-    _refreshItems();
+    await SQLHelper.createItem(
+        _titleController.text, _descriptionController.text);
+    _refreshPosts();
   }
 
+  // Update an existing journal
   Future<void> _updateItem(int id) async {
-    await DBHelper.updateItem(
-        id, _usernameController.text, _hobbyController.text);
-    _refreshItems();
+    await SQLHelper.updateItem(
+        id, _titleController.text, _descriptionController.text);
+    _refreshPosts();
   }
 
+  // Delete an item
   void _deleteItem(int id) async {
-    await DBHelper.deleteItem(id);
+    await SQLHelper.deleteItem(id);
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-      content: Text('Successfully deleted an item!'),
+      content: Text('Successfully deleted a post!'),
     ));
-    _refreshItems();
+    _refreshPosts();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Hobbyist'),
+        title: const Text('POSTZ'),
       ),
       body: _isLoading
           ? const Center(
               child: CircularProgressIndicator(),
             )
           : ListView.builder(
-              itemCount: _items.length,
+              itemCount: _posts.length,
               itemBuilder: (context, index) => Card(
-                color: Colors.blue[300],
+                color: Colors.purple[300],
                 margin: const EdgeInsets.all(15),
                 child: ListTile(
                     isThreeLine: true,
-                    title: Text(_items[index]['username']),
-                    subtitle: Text(_items[index]['hobby']),
+                    title: Text(_posts[index]['title']),
+                    subtitle: Text(_posts[index]['description']),
                     trailing: SizedBox(
                       width: 100,
                       child: Row(
                         children: [
                           IconButton(
                             icon: const Icon(Icons.edit),
-                            onPressed: () => _showForm(_items[index]['id']),
+                            onPressed: () => _showForm(_posts[index]['id']),
                           ),
                           IconButton(
                             icon: const Icon(Icons.delete),
-                            onPressed: () => _deleteItem(_items[index]['id']),
+                            onPressed: () => _deleteItem(_posts[index]['id']),
                           ),
                         ],
                       ),
