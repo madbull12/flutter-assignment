@@ -20,13 +20,13 @@ class _SplashScreenState extends State<SplashScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        color: Colors.deepPurple,
+        color: Colors.blue,
         child: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
-                'POSTZ',
+                'Hobbyist',
                 style: TextStyle(
                     fontSize: 36,
                     fontWeight: FontWeight.bold,
@@ -34,7 +34,7 @@ class _SplashScreenState extends State<SplashScreen> {
               ),
               SizedBox(height: 16),
               Text(
-                'Write meaningful posts',
+                'Write your hobbies!',
                 style: TextStyle(fontSize: 18, color: Colors.white),
               ),
             ],
